@@ -15,7 +15,7 @@ def pretokenization_process_chunk(chunk: str, special_tokens: list[str], pos: in
     splits = re.split("|".join(map(re.escape, special_tokens)), chunk)
     ret = defaultdict(int)
     cache = {}
-    for split in tqdm.tqdm(splits, position=pos):
+    for split in tqdm.tqdm(splits, position=pos, desc=f"Pre-tokenization {pos}", disable=pos!=0):
         tokens = re.findall(PAT, split)
         for token in tokens:
             if token in cache:
@@ -130,7 +130,7 @@ def train_bpe(
     print("running merge...")
     byte_pair_frequency = defaultdict(int)
     byte_pair_pretoken_map = defaultdict(set)
-    for pretoken in pretoken_frequency:
+    for pretoken in tqdm.tqdm(pretoken_frequency, desc="merge initialization"):
         if len(pretoken) < 2:
             continue
         for byte_pair in get_pretoken_byte_pair(pretoken):
@@ -140,21 +140,21 @@ def train_bpe(
     vocab = [s.encode("utf-8") for s in special_tokens] + [bytes([x]) for x in range(256)]
     merges = []
 
-    for _ in tqdm.tqdm(range(vocab_size - len(vocab))):
+    for _ in tqdm.tqdm(range(vocab_size - len(vocab)), desc="merge"):
         new_vocab, new_merge = merge(pretoken_frequency, byte_pair_frequency, byte_pair_pretoken_map)
         vocab.append(new_vocab)
         merges.append(new_merge)
-    
+
     vocab = dict(enumerate(vocab))
     return vocab, merges
     
 
 if __name__ == "__main__":
-    input_path = "data/TinyStoriesV2-GPT4-train.txt"
+    input_path = "data/owt_train.txt"
 
     # pretokens = pretokenization(input_path, special_tokens=['<|endoftext|>'])
     # pickle.dump(pretokens, open("pretokenized_data.pkl", "wb"))
 
-    vocab, merge = run_train_bpe(input_path, vocab_size=1000, special_tokens=['<|endoftext|>'])
-    print(vocab)
-    print(merge)
+    vocab, merge = train_bpe(input_path, vocab_size=32000, special_tokens=['<|endoftext|>'])
+    pickle.dump(vocab, open("vocab_owt.pkl", "wb"))
+    pickle.dump(merge, open("merge_owt.pkl", "wb"))
