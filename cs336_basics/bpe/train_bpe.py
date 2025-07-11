@@ -10,6 +10,7 @@ import pickle
 
 NUM_PROCESSES = multiprocessing.cpu_count()
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+PROFILER_ON = False
 
 def pretokenization_process_chunk(chunk: str, special_tokens: list[str], pos: int = 0) -> dict[tuple[bytes, ...], int]:
     splits = re.split("|".join(map(re.escape, special_tokens)), chunk)
@@ -47,14 +48,14 @@ def pretokenization(input_path: str | os.PathLike, special_tokens: list[str]) ->
             ret[k] += p[k]
     return ret
 
+
 def merge(
     pretoken_frequency: dict[tuple[bytes, ...], int], 
     byte_pair_frequency: dict[tuple[bytes, bytes], int], 
     byte_pair_pretoken_map: dict[tuple[bytes, bytes], set[tuple[bytes, ...]]]
 ) -> tuple[bytes, tuple[bytes, bytes]]:
-    # first sort by byte_pair_frequency and get the most frequent one  
-    sorted_frequency = sorted(byte_pair_frequency.items(), key=lambda x: (x[1], x[0]))
-    merge_byte_pair = sorted_frequency[-1][0]
+    # get the most frequent byte pair
+    merge_byte_pair = max(byte_pair_frequency.items(), key=lambda x: (x[1], x[0]))[0]
     # no need to remove it from byte_pair_frequency, since we will subtract all frequency of pretoken that has this byte pair
     # so frequency will always go to 0
 
@@ -150,11 +151,34 @@ def train_bpe(
     
 
 if __name__ == "__main__":
-    input_path = "data/owt_train.txt"
+    import cProfile
+    import pstats
 
-    # pretokens = pretokenization(input_path, special_tokens=['<|endoftext|>'])
-    # pickle.dump(pretokens, open("pretokenized_data.pkl", "wb"))
+    if PROFILER_ON:
+        input_path = "data/owt_valid.txt"
+        vocab_size = 1000
+        special_tokens = ['<|endoftext|>']
 
-    vocab, merge = train_bpe(input_path, vocab_size=32000, special_tokens=['<|endoftext|>'])
-    pickle.dump(vocab, open("vocab_owt.pkl", "wb"))
-    pickle.dump(merge, open("merge_owt.pkl", "wb"))
+        print(f"Profiling train_bpe with a focus on the merge function and its callees.")
+        print(f"Using input: {input_path} and vocab_size: {vocab_size}")
+
+        profiler = cProfile.Profile()
+        
+        # Run the function under the profiler
+        profiler.runcall(train_bpe, input_path, vocab_size=vocab_size, special_tokens=special_tokens)
+
+        print("\n--- Profiling Results for merge() and its callees ---")
+        stats = pstats.Stats(profiler).sort_stats('tottime')
+        # Print stats for the 'merge' function itself
+        stats.print_stats('merge') 
+        # Print stats for the functions called by 'merge'
+        print("\n--- Callees of merge() ---")
+        stats.print_callees('merge')
+    else:
+        input_path = "data/owt_train.txt"
+        vocab_size = 32000
+        special_tokens = ['<|endoftext|>']
+        vocab, merge = train_bpe(input_path, vocab_size=vocab_size, special_tokens=special_tokens)
+        pickle.dump(vocab, open("vocab_owt.pkl", "wb"))
+        pickle.dump(merge, open("merge_owt.pkl", "wb"))
+
