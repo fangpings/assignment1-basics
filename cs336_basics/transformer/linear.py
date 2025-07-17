@@ -8,7 +8,8 @@ from einops import einsum
 from math import sqrt
 
 class Linear(nn.Module):
-    def __init__(self, 
+    def __init__(
+        self, 
         in_features: int, 
         out_features: int,
         device: torch.device | None = None,
