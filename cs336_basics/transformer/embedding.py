@@ -15,9 +15,9 @@ class Embedding(nn.Module):
         super(Embedding, self).__init__()
         w = torch.empty(vocab_size, embedding_dim, device=device, dtype=dtype)
         nn.init.trunc_normal_(w)
-        self.w = nn.Parameter(w)
+        self.weight = nn.Parameter(w)
     
     def forward(self, token_ids: Int[Tensor, '...']) -> Float[Tensor, '... d_model']:
         # see https://numpy.org/doc/stable/user/basics.indexing.html#integer-array-indexing
         # magic
-        return self.w[token_ids]
+        return self.weight[token_ids]

@@ -46,8 +46,8 @@ class Attention(nn.Module):
         self.num_heads = num_heads
         self.d_heads = d_model // num_heads
 
-        self.w = Linear(d_model, 3 * d_model, device=device, dtype=dtype)
-        self.wo = Linear(d_model, d_model, device=device, dtype=dtype)
+        self.attn_proj = Linear(d_model, 3 * d_model, device=device, dtype=dtype)
+        self.output_proj = Linear(d_model, d_model, device=device, dtype=dtype)
 
         if theta is not None and max_seq_len is not None:
             self.rope = RoPE(theta=theta, d_k=self.d_heads, max_seq_len=max_seq_len)
@@ -55,7 +55,7 @@ class Attention(nn.Module):
             self.rope = None
     
     def forward(self, x: Float[Tensor, " ... seq_len d_model"], token_positions: Float[Tensor, " ... seq_len"] | None = None) -> Float[Tensor, " ... seq_len d_model"]:
-        q, k, v = self.w(x).split(self.d_model, dim=-1)
+        q, k, v = self.attn_proj(x).split(self.d_model, dim=-1)
         q = rearrange(q, '... seq_len (h d_v) -> ... h seq_len d_v', h=self.num_heads)
         k = rearrange(k, '... seq_len (h d_v) -> ... h seq_len d_v', h=self.num_heads)
         v = rearrange(v, '... seq_len (h d_v) -> ... h seq_len d_v', h=self.num_heads)
@@ -70,6 +70,6 @@ class Attention(nn.Module):
         
         o = scaled_dot_product_attention(q, k, v, mask)
         o = rearrange(o, '... h seq_len d_v -> ... seq_len (h d_v)')
-        o = self.wo(o)
+        o = self.output_proj(o)
 
         return o

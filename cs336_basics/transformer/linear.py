@@ -20,7 +20,7 @@ class Linear(nn.Module):
 
         std = sqrt(2/(out_features+in_features))
         nn.init.trunc_normal_(w, std=std, a=-3*std, b=3*std)
-        self.w = nn.Parameter(w)
+        self.weight = nn.Parameter(w)
     
     def forward(self, x: Float[Tensor, "... d_in"]) -> Float[Tensor, "... d_out"]:
-        return einsum(self.w, x, "d_out d_in, ... d_in -> ... d_out")
+        return einsum(self.weight, x, "d_out d_in, ... d_in -> ... d_out")
