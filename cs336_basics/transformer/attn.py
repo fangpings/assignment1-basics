@@ -62,9 +62,10 @@ class Attention(nn.Module):
 
         seq_len = x.shape[-2]
         mask = torch.tril(torch.ones(seq_len, seq_len)) == 1
+        mask = mask.to(x.device)
 
         if token_positions is None:
-            token_positions = torch.arange(seq_len).repeat(*x.shape[:-2], 1)
+            token_positions = torch.arange(seq_len)
         if self.rope:
             q, k = self.rope(q, token_positions), self.rope(k, token_positions)
         

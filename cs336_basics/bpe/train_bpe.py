@@ -175,10 +175,10 @@ if __name__ == "__main__":
         print("\n--- Callees of merge() ---")
         stats.print_callees('merge')
     else:
-        input_path = "data/owt_train.txt"
-        vocab_size = 32000
+        input_path = "data/tiny_stories/TinyStoriesV2-GPT4-train.txt"
+        vocab_size = 10000
         special_tokens = ['<|endoftext|>']
         vocab, merge = train_bpe(input_path, vocab_size=vocab_size, special_tokens=special_tokens)
-        pickle.dump(vocab, open("vocab_owt.pkl", "wb"))
-        pickle.dump(merge, open("merge_owt.pkl", "wb"))
+        pickle.dump(vocab, open("data/tiny_stories/vocab.pkl", "wb"))
+        pickle.dump(merge, open("data/tiny_stories/merge.pkl", "wb"))
 
