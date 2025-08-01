@@ -24,6 +24,6 @@ validation_path: "data/tiny_stories/tokenized_valid.npy"
 checkpoint_dir: "checkpoints/"
 max_iteration: 40000
 batch_size: 32
-checkpoint_steps: 5
+checkpoint_steps: 5000
 eval_steps: 500
 log_dir: "logs/"

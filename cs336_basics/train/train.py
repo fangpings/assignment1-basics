@@ -56,10 +56,9 @@ def train(config: Config):
         checkpoints.sort()
         latest_checkpoint = os.path.join(config.checkpoint_dir, checkpoints[-1])
         current_iter = load_checkpoint(latest_checkpoint, model, optimizer)
+        logging.info(f"Resuming from checkpoint at step {current_iter}")
 
     config.log()
-    if current_iter > 0:
-        logging.info(f"Resuming from checkpoint at step {current_iter}")
     writer = SummaryWriter(os.path.join(config.log_dir, f"{int(time.time())}"))
 
     # sample_inputs, _ = get_batch(train_data, config.batch_size, config.context_length, device=device)
