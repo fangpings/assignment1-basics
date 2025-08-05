@@ -40,6 +40,7 @@ class Config:
     checkpoint_steps: int  # Number of steps between checkpoints
     eval_steps: int  # Number of steps between evaluations
     log_dir: str | os.PathLike | BinaryIO | IO[bytes]  # Directory for saving logs
+    experiment_name: str # Name of the experiments
     
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "Config":

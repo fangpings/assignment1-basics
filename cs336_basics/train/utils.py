@@ -48,11 +48,12 @@ def save_checkpoint(
 def load_checkpoint(
     src: str | os.PathLike | BinaryIO | IO[bytes],
     model: torch.nn.Module,
-    optimizer: torch.optim.Optimizer,
+    optimizer: torch.optim.Optimizer | None = None,
 ):
     with open(src, "rb") as f:
         state = torch.load(f)
     model.load_state_dict(state["model"])
-    optimizer.load_state_dict(state["optimizer"])
+    if optimizer:
+        optimizer.load_state_dict(state["optimizer"])
     iteration = state["iteration"]
     return iteration

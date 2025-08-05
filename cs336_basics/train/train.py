@@ -39,6 +39,9 @@ def train(config: Config):
         theta=config.rope_theta
     ).to(device)
 
+    if device == torch.device("mps"):
+        model = torch.compile(model, backend="aot_eager")
+
     optimizer = AdamW(
         params=model.parameters(),
         lr=config.max_learning_rate,
@@ -47,19 +50,22 @@ def train(config: Config):
     )
 
     current_iter = -1
-    if not os.path.isdir(config.checkpoint_dir) or not os.listdir(config.checkpoint_dir):
+    checkpoint_dir = os.path.join(config.checkpoint_dir, config.experiment_name)
+    if not os.path.isdir(checkpoint_dir) or not [x for x in os.listdir(checkpoint_dir) if x != "config.yaml"]:
         # if checkpoint dir does not exist or have no content
-        os.makedirs(config.checkpoint_dir, exist_ok=True)
+        os.makedirs(checkpoint_dir, exist_ok=True)
     else:
         # else read from latest checkpoint
-        checkpoints = os.listdir(config.checkpoint_dir)
+        checkpoints = os.listdir(checkpoint_dir)
         checkpoints.sort()
-        latest_checkpoint = os.path.join(config.checkpoint_dir, checkpoints[-1])
+        latest_checkpoint = os.path.join(checkpoint_dir, checkpoints[-1])
         current_iter = load_checkpoint(latest_checkpoint, model, optimizer)
         logging.info(f"Resuming from checkpoint at step {current_iter}")
 
     config.log()
-    writer = SummaryWriter(os.path.join(config.log_dir, f"{int(time.time())}"))
+    writer = SummaryWriter(os.path.join(config.log_dir, config.experiment_name))
+    config.to_yaml(os.path.join(checkpoint_dir, "config.yaml"))
+
 
     # sample_inputs, _ = get_batch(train_data, config.batch_size, config.context_length, device=device)
     # writer.add_graph(model, sample_inputs)
@@ -92,15 +98,26 @@ def train(config: Config):
         optimizer.param_groups[0]['lr'] = lr # this is how lr scheduler works
         optimizer.step()
 
+        writer.add_scalar('Learning Rate', lr, it)
         writer.add_scalar('Loss/train', loss.item(), it)
         train_iter.set_description(f"Training - Loss {loss.item():04f}")
 
+        if it > 0 and it % config.eval_steps == 0:
+            with torch.no_grad():
+                batch, target = get_batch(validation_data, config.batch_size, config.context_length, device=device)
+                logits = model(batch)
+
+                logits = logits.view(-1, logits.shape[-1])
+                target = target.view(-1)
+                loss = cross_entropy_loss(logits, target)
+                writer.add_scalar('Loss/eval', loss.item(), it)
+
         if it > 0 and it % config.checkpoint_steps == 0:
-            save_dir = os.path.join(config.checkpoint_dir, f"step_{it:04d}.bin")
+            save_dir = os.path.join(checkpoint_dir, config.experiment_name, f"step_{it:04d}.bin")
             save_checkpoint(model, optimizer, it, save_dir)
     
     writer.close()
-    save_dir = os.path.join(config.checkpoint_dir, f"step_{it:04d}.bin")
+    save_dir = os.path.join(config.checkpoint_dir, config.experiment_name, f"step_{it:04d}.bin")
     save_checkpoint(model, optimizer, it, save_dir)
 
 if __name__ == "__main__":

@@ -34,6 +34,11 @@ class Tokenizer(object):
         
         return cls(vocab, merges, special_tokens, log_progress)
     
+    @classmethod
+    def from_pikcle(cls, pickle_path: str):
+        with open(pickle_path, 'rb') as pickle_file:
+            return pickle.load(pickle_file)
+    
     def apply_merge(self, token: tuple[bytes, ...]) -> list[int]:
         token = list(token)
         
@@ -107,10 +112,16 @@ if __name__ == "__main__":
 
     tokenizer = Tokenizer.from_files(vocab_path, merge_path, special_tokens=special_tokens, log_progress=True)
 
-    with open("data/tiny_stories/TinyStoriesV2-GPT4-train.txt", "r") as f:
-        text = f.read()
-        ids = tokenizer.encode(text)
-        arr = np.array(ids)
-    with open("data/tiny_stories/tokenized_train.npy", "wb") as f:
-        np.save(f, arr)
+    with open("data/tiny_stories/tokenizer.pkl", "wb") as f:
+        pickle.dump(tokenizer, f)
+    
+    t = Tokenizer.from_pikcle("data/tiny_stories/tokenizer.pkl")
+    print(t.encode('<|endoftext|>'))
+
+    # with open("data/tiny_stories/TinyStoriesV2-GPT4-train.txt", "r") as f:
+    #     text = f.read()
+    #     ids = tokenizer.encode(text)
+    #     arr = np.array(ids)
+    # with open("data/tiny_stories/tokenized_train.npy", "wb") as f:
+    #     np.save(f, arr)
     # print(tokenizer.encode("the cat ate"))  # Output: 'hello world'

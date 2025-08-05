@@ -10,9 +10,9 @@ from math import sqrt
 from .linear import Linear
 from .rope import RoPE
 
-def softmax(x: Float[Tensor, " ..."], dim: int = -1) -> Float[Tensor, " ..."]:
+def softmax(x: Float[Tensor, " ..."], dim: int = -1, temperature: float = 1.0) -> Float[Tensor, " ..."]:
     x = x - x.max(dim=dim, keepdim=True)[0]
-    return torch.exp(x) / torch.sum(torch.exp(x), dim=dim, keepdim=True)
+    return torch.exp(x/temperature) / torch.sum(torch.exp(x/temperature), dim=dim, keepdim=True)
 
 def scaled_dot_product_attention(
     q: Float[Tensor, " ... seq_len d"],
